@@ -34,10 +34,6 @@ class PasswordManager:
     def decrypt_password(self, encrypted_password):
         return self.cipher_suite.decrypt(encrypted_password.encode()).decode()
 
-    def save_all_passwords(self):
-        for service, password in self.passwords.items():
-            self.db_manager.store_password(service, password)
-
     def delete_passwords(self, service):
         self.db_manager.delete_password(service)
 
@@ -51,16 +47,17 @@ class PasswordManager:
         else:
             return None
 
+
 class DatabaseManager:
 
-    def __init__(self, host, user, password, database):
-        self.conn = self.create_connection
+    def __init__(self, db_path):
+        self.conn = self.create_connection(db_path)
 
     @property
-    def create_connection(self):
+    def create_connection(self, db_path):
         conn = None
         try:
-            conn = sqlite3.connect('passwords_db')
+            conn = sqlite3.connect(db_path)
             return conn
         except Exception as e:
             print(e)
@@ -107,7 +104,7 @@ class DatabaseManager:
         result = cursor.fetchone()
         return result[0]
 
-db_man = DatabaseManager('localhost', 'host', 'admin','password_manager')
+db_man = DatabaseManager()
 pass_man = PasswordManager('85738336', db_man)
 
 pass_man.set_password('netflix','cavalodefogo11')
