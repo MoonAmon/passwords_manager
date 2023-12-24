@@ -104,7 +104,8 @@ class DatabaseManager:
         result = cursor.fetchone()
         return result[0]
 
-db_man = DatabaseManager()
+
+db_man = DatabaseManager('passwords_db')
 pass_man = PasswordManager('85738336', db_man)
 
 pass_man.set_password('netflix','cavalodefogo11')
