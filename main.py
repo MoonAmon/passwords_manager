@@ -1,3 +1,4 @@
+import hashlib
 import os
 import base64
 import sqlite3
@@ -12,21 +13,18 @@ class PasswordManager:
     def __init__(self, master_key, db_manager):
         self.master_key = master_key
         self.db_manager = db_manager
-        self.salt = os.urandom(16)
-        self.pepper = os.urandom(16)
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=self.salt,
-            iterations=100000,
-            backend=default_backend()
-        )
-        key = base64.urlsafe_b64encode(kdf.derive(self.master_key.encode()))
-        self.cipher_suite = Fernet(key)
+        self.salt = db_manager.get_salt()
+        self.master_key_hash = self.hash_string(self.master_key)
+        self.cipher_suite = None
+        self.key = None
+
+    @staticmethod
+    def hash_string(input_string):
+        return hashlib.sha256(input_string.encode()).hexdigest()
 
     def set_password(self, service, password):
         encrypted_password = self.encrypt_password(password)
-        self.db_manager.store_password(service, encrypted_password)
+        self.db_manager.set_password(service, encrypted_password)
 
     def encrypt_password(self, password):
         return self.cipher_suite.encrypt(password.encode()).decode()
@@ -37,9 +35,6 @@ class PasswordManager:
     def delete_passwords(self, service):
         self.db_manager.delete_password(service)
 
-    def get_all_passwords(self):
-        self.db_manager.get_all_passwords()
-
     def get_decrypted_password(self, service):
         encrypted_password = self.db_manager.get_password(service)
         if encrypted_password is not None:
@@ -47,15 +42,33 @@ class PasswordManager:
         else:
             return None
 
+    def verify_master_key(self):
+        stored_hash_master_key = self.db_manager.get_master_key_hash()
+        hash_master_key = self.hash_string(self.master_key)
+        if hash_master_key != stored_hash_master_key:
+            return False
+        else:
+            return True
+
+    def set_key_Fernat(self):
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.salt,
+            iterations=100000,
+            backend=default_backend()
+        )
+        self.key = base64.urlsafe_b64encode(kdf.derive(self.master_key.encode()))
+        self.cipher_suite = Fernet(self.key)
+
+
 
 class DatabaseManager:
 
     def __init__(self, db_path):
         self.conn = self.create_connection(db_path)
 
-    @property
     def create_connection(self, db_path):
-        conn = None
         try:
             conn = sqlite3.connect(db_path)
             return conn
@@ -66,7 +79,7 @@ class DatabaseManager:
         if self.conn:
             self.conn.close()
 
-    def store_password(self, service, password):
+    def set_password(self, service, password):
         cursor = self.conn.cursor()
         try:
             cursor.execute("""
@@ -90,7 +103,7 @@ class DatabaseManager:
     def get_all_passwords(self):
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT * FROM passwords;
+            SELECT passwords.service, passwords.password FROM passwords;
         """)
         result = cursor.fetchall()
         return result
@@ -104,16 +117,38 @@ class DatabaseManager:
         result = cursor.fetchone()
         return result[0]
 
+    def set_master_key_hash_and_salt(self, hash_master_key, salt):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO master_key 
+                VALUES ( ?,? );
+            """, (hash_master_key,salt))
+            self.conn.commit()
+        except Exception as e:
+            print(e)
 
-db_man = DatabaseManager('passwords_db')
-pass_man = PasswordManager('85738336', db_man)
+    def get_master_key_hash(self):
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT hash FROM master_key
+                LIMIT 1;
+            """)
+            result = cursor.fetchone()
+            if result is not None:
+                return result[0]
+            else:
+                return None
 
-pass_man.set_password('netflix','cavalodefogo11')
-pass_man.set_password('gmail','LouvadorDeGods')
-
-pass_man.get_all_passwords()
-
-print(pass_man.get_decrypted_password('netflix'))
-
-
+    def get_salt(self):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT salt FROM master_key
+            LIMIT 1;
+        """)
+        result = cursor.fetchone()
+        if result is not None:
+            return result[0]
+        else:
+            return None
 
