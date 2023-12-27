@@ -1,11 +1,13 @@
-import hashlib
-import os
 import base64
+import hashlib
+import secrets
 import sqlite3
+import string
+
 from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.backends import default_backend
 
 
 class PasswordManager:
@@ -22,9 +24,19 @@ class PasswordManager:
     def hash_string(input_string):
         return hashlib.sha256(input_string.encode()).hexdigest()
 
+    @staticmethod
+    def generate_password(length=12):
+        all_characters = string.ascii_letters + string.digits + string.punctuation
+        password = ''.join(secrets.choice(all_characters) for _ in range(length))
+        return password
+
     def set_password(self, service, password):
         encrypted_password = self.encrypt_password(password)
         self.db_manager.set_password(service, encrypted_password)
+
+    def update_password(self, service, password):
+        encrypted_password = self.encrypt_password(password)
+        self.db_manager.update_password(service, encrypted_password)
 
     def encrypt_password(self, password):
         return self.cipher_suite.encrypt(password.encode()).decode()
@@ -50,7 +62,7 @@ class PasswordManager:
         else:
             return True
 
-    def set_key_Fernat(self):
+    def set_key_fernat(self):
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -61,6 +73,9 @@ class PasswordManager:
         self.key = base64.urlsafe_b64encode(kdf.derive(self.master_key.encode()))
         self.cipher_suite = Fernet(self.key)
 
+    def get_services(self):
+        results = self.db_manager.get_services()
+        return results
 
 
 class DatabaseManager:
@@ -115,7 +130,10 @@ class DatabaseManager:
             WHERE service = ?;
         """, (service,))
         result = cursor.fetchone()
-        return result[0]
+        if result is not None:
+            return result[0]
+        else:
+            print("Password for the service not found!")
 
     def set_master_key_hash_and_salt(self, hash_master_key, salt):
         try:
@@ -123,22 +141,22 @@ class DatabaseManager:
             cursor.execute("""
                 INSERT INTO master_key 
                 VALUES ( ?,? );
-            """, (hash_master_key,salt))
+            """, (hash_master_key, salt))
             self.conn.commit()
         except Exception as e:
             print(e)
 
     def get_master_key_hash(self):
-            cursor = self.conn.cursor()
-            cursor.execute("""
-                SELECT hash FROM master_key
-                LIMIT 1;
-            """)
-            result = cursor.fetchone()
-            if result is not None:
-                return result[0]
-            else:
-                return None
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT hash FROM master_key
+            LIMIT 1;
+        """)
+        result = cursor.fetchone()
+        if result is not None:
+            return result[0]
+        else:
+            return print("Master Key hash not found!")
 
     def get_salt(self):
         cursor = self.conn.cursor()
@@ -150,5 +168,27 @@ class DatabaseManager:
         if result is not None:
             return result[0]
         else:
-            return None
+            return print("Salt not found!")
 
+    def update_password(self, service, password):
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE passwords
+                SET password = ?      
+                WHERE service = ?;
+            """, (password, service))
+            self.conn.commit()
+        except Exception as e:
+            print(e)
+
+    def get_services(self):
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT service FROM passwords; 
+            """)
+            results = cursor.fetchall()
+            return results
+        except Exception as e:
+            print(e)

@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-# encoding: utf-8
+import secrets
+import string
+def generate_password(length=12):
+    all_characters = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(secrets.choice(all_characters) for _ in range(length))
+    return password
 
-import npyscreen
+password_test = generate_password(30)
 
-
-def simple_function(*args):
-    form = npyscreen.Form(name='simple form!')
-    form.edit()
-
-if __name__ == '__main__':
-    npyscreen.wrapper_basic(simple_function)
+print(password_test)
