@@ -3,6 +3,7 @@ import hashlib
 import secrets
 import sqlite3
 import string
+import cli_hud
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -139,7 +140,7 @@ class DatabaseManager:
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
-                INSERT INTO master_key 
+                INSERT INTO master_key (hash, salt)
                 VALUES ( ?,? );
             """, (hash_master_key, salt))
             self.conn.commit()
@@ -192,3 +193,10 @@ class DatabaseManager:
             return results
         except Exception as e:
             print(e)
+
+if __name__ == '__main__':
+    db_path = 'passwords_db'
+    db_manager = DatabaseManager(db_path)
+    password_manager: PasswordManager = PasswordManager('none', db_manager)
+    app = cli_hud.PasswordManagerApp()
+    app.run()
