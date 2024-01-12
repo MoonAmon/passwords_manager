@@ -47,6 +47,12 @@ The main menu of the application provides the following options:
 
 Press the number corresponding of the desired operation.
 
+## UML Diagram
+
+Below is the UML diagram for the Password Manager application:
+
+![UML Diagram](docs/uml_diagram.png)
+
 ## Contributing
 
 Thank you for considering contributing to this project! As it's my first CRUD project, I'm eager to receive suggestions, corrections, and enhancements from the community. Please follow these guidelines to contribute effectively:

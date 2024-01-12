@@ -1,7 +1,10 @@
+from controller.password_manager import PasswordManager
+from model.database import DatabaseManager
+
 import os
 import npyscreen
-import main
 import pyperclip
+
 
 class CheckMasterKeyForm(npyscreen.ActionFormMinimal):
     def create(self):
@@ -41,7 +44,7 @@ class MasterKeyForm(npyscreen.ActionFormMinimal):
 class PasswordManagerApp(npyscreen.NPSAppManaged):
 
     def onStart(self):
-        self.password_manager = main.PasswordManager('none', main.DatabaseManager('passwords_db'))
+        self.password_manager = PasswordManager('none', DatabaseManager('passwords_db'))
         self.addForm('MAIN', MasterKeyForm, name='Password Manager')
         self.addForm('PasswordManagerMenu', PasswordManagerMenu, name='Password Manager Menu')
         self.addForm('PasswordManagerForm', PasswordManagerForm, name='Password Manager')
