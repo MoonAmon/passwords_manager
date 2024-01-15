@@ -143,3 +143,4 @@ class PasswordManager:
         """
         results = self.db_manager.get_services()
         return results
+

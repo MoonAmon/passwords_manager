@@ -53,7 +53,6 @@ class PasswordManagerApp(npyscreen.NPSAppManaged):
         self.addForm('DisplayPasswordsForm', DisplayPasswordsForm, name='List Password')
         self.addForm('UpdatePasswordForm', UpdatePasswordForm, name='Update Password')
         self.addForm('DeletePasswordForm', DeletePasswordForm, name='Delete Password')
-        self.addForm('CheckMasterKeyForm', CheckMasterKeyForm, name='Check Master Key')
 
     def onCleanExit(self):
         self.switchForm('CheckMasterKeyForm')
